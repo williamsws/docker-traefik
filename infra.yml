@@ -1,0 +1,53 @@
+version: '3'
+services:
+   whoami:
+      image: jwilder/whoami
+      networks:
+       - mynet
+      deploy:
+        replicas: 3
+   mariadb:
+      image: mariadb:latest
+      environment:
+        - MYSQL_ROOT_PASSWORD=ghost
+        - MYSQL_DATABASE=wordpress
+      volumes:
+       - /mnt/swarm/database:/var/lib/mysql
+      networks:
+       - mynet
+
+   ghost:
+     image: ghost:latest
+     volumes:
+     - /mnt/swarm/ghost:/var/lib/ghost
+     networks:
+      - mynet
+     deploy:
+      replicas: 3 
+   wordpress:
+     depends_on:
+       - stack_mariadb
+     image: wordpress:latest
+     ports:
+      - 8080:80
+     volumes:
+     - /mnt/swarm/wordpress:/var/www/html
+     restart: always
+     environment:
+       WORDPRESS_DB_HOST: stack_mariadb
+       WORDPRESS_DB_USER: root
+       WORDPRESS_DB_PASSWORD: ghost
+       VIRTUAL_HOST: word.mynet
+     networks:
+      - mynet
+     deploy:
+      replicas: 3
+networks:
+   mynet:
+
+       driver: overlay
+       ipam:
+          driver: default
+          config:
+             - subnet: 10.10.0.0/16
+               

@@ -1,0 +1,65 @@
+version: '3'
+services:
+  mariadb:
+    image: mariadb:latest
+    networks:
+     - bdd
+    environment:
+     - MYSQL_ROOT_PASSWORD=ghost
+     - MYSQL_DATABASE=wordpress
+    volumes:
+     - /mnt/swarm/database:/var/lib/mysql
+
+    deploy:
+     labels:
+      - "traefik.port=3306"
+      - "traefik.docker.network=traefik-net"
+      - "traefik.frontend.rule=Host:maridb.swarm.startup.local"
+  ghost:
+    image: ghost:latest
+    networks:
+     - mynet
+     - bdd
+    volumes:
+     - /mnt/swarm/ghost:/var/lib/ghost
+    deploy:
+     labels:
+      - "traefik.port=2368"
+      - "traefik.docker.network=traefik-net"
+      - "traefik.frontend.rule=Host:ghost.swarm.startup.local"
+  wordpress:
+    depends_on:
+     - mynet
+    image: wordpress:latest
+    networks:
+     - mynet
+     - bdd
+    volumes:
+     - /mnt/swarm/wordpress:/var/www/html
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: stack_mariadb
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: ghost
+      VIRTUAL_HOST: wordpress.swarm.startup.local
+    deploy:
+     labels:
+      - "traefik.port=80"
+      - "traefik.docker.network=traefik-net"
+      - "traefik.frontend.rule=Host:wordpress.swarm.startup.local"
+networks:
+ traefik-net:
+   external: true
+
+ mynet:
+  driver: overlay
+  ipam:
+    driver: default
+    config:
+    - subnet: 10.10.0.0/16
+ bdd:
+  driver: overlay
+  ipam:
+    driver: default
+    config:
+    - subnet: 10.11.0.0/16

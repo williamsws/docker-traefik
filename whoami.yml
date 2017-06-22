@@ -1,0 +1,14 @@
+version: "3"
+services:
+  web:
+    image: emilevauge/whoami
+    networks:
+      - traefik-net
+    deploy:
+      labels:
+        - "traefik.port=80"
+        - "traefik.docker.network=traefik-net"
+        - "traefik.frontend.rule=Host:whoami.swarm.startup.local"
+networks:
+  traefik-net:
+    external: true
